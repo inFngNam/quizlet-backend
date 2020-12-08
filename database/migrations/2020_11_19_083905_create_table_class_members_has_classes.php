@@ -15,11 +15,15 @@ class CreateTableClassMembersHasClasses extends Migration
     {
         Schema::create('members_has_classes', function (Blueprint $table) {
             $table->unsignedBigInteger('member_id');
-            $table->foreign('member_id')->references('id')->on('members')
+            $table->foreign('member_id')->references('user_id')->on('members')
                 ->onDelete('cascade');
             $table->unsignedBigInteger('class_id');
             $table->foreign('class_id')->references('id')->on('class')
                 ->onDelete('cascade');
+            $table->primary(array('member_id', 'class_id'));
+            $table->unsignedBigInteger('role_id');
+//            $table->foreign('role_id')->references('id')->on('roles')
+//                ->onDelete('cascade');
             $table->timestamps();
         });
     }

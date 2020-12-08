@@ -32,11 +32,11 @@ class VerifyAccount extends Mailable
     public function build()
     {
         return $this->from('manh117bg@gmail.com', 'Quizlet JP Team')
-            ->subject('Verify Quizlet JPA')
+            ->subject('Verify Quizlet JP')
             ->markdown('email.verify_account')
             ->with([
                 'name' => $this->user_mail ,
-                'link' => 'http://localhost:9000/api/auth' . $this->verify_link
+                'link' => 'https://quizlet-server.herokuapp.com/api/auth' . $this->verify_link
             ]);
     }
 }

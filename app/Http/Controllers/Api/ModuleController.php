@@ -3,13 +3,41 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\ClassModel;
+use App\Models\Folder;
+use App\Models\MembersHasClasses;
 use App\Models\User;
 use Illuminate\Http\Request;
 use App\Models\Module;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class ModuleController extends Controller
 {
+    public function index($id) {
+        try {
+            $user = Auth::user();
+            $module = Module::find($id);
+            if ($user->id == $module->user->id) {
+                return response()->json($module, 200);
+            }
+            else {
+                if ($module->public != 0) {
+                    return response()->json($module, 200);
+                }
+                else {
+                    return response()->json([
+                        "message" => "You can not access this module"
+                    ], 400);
+                }
+            }
+        }
+        catch (\Exception $exception) {
+            return response()->json([
+                "message" => $exception->getMessage()
+            ], 500);
+        }
+    }
     public function allModules() {
         $modules = Module::all();
         return response()->json($modules, 200);
@@ -76,6 +104,7 @@ class ModuleController extends Controller
                 $module_update_data = [
                     'name' => isset($query['name']) ? htmlspecialchars($query['name']) : $module->name,
                     'public' => isset($query['public']) ? (int) $query['public'] : $module->public,
+                    'updated_at' => $current_time
                 ];
                 try {
                     Module::find($id)
@@ -101,9 +130,10 @@ class ModuleController extends Controller
         if ($user_id == $user->id) {
             try {
                 Module::find($id)->delete();
-                return response()->json([
-                    'message' => 'Deleted success'
-                ], 200);
+                return $this->allModules();
+//                return response()->json([
+//                    'message' => 'Deleted success'
+//                ], 200);
             }
             catch (\Exception $exception) {
                 return response()->json([
@@ -111,5 +141,90 @@ class ModuleController extends Controller
                 ], 500);
             }
         }
+    }
+    public function modulesInFolderService($folder_id) {
+        $user = Auth::user();
+        try {
+            if ($folder_id) {
+                $folder = Folder::find($folder_id);
+                $folder_user_id = $folder->user->id;
+                $modules = DB::table('module')
+                    ->join('folder_has_module', 'module_id', '=', 'module.id')
+                    ->where('folder_has_module.folder_id', '=', $folder_id);
+                if ($folder_user_id == $user->id) {
+                    $modules = $modules->select('module.*')->get();
+                    return response()->json($modules, 200);
+                }
+                else {
+                    if ($folder->public != 0) {
+                        $modules = $modules->where('module.public', '<>', 0)
+                            ->select('module.*')
+                            ->get();
+                        return response()->json($modules, 200);
+                    }
+                    else {
+                        return response()->json([
+                            "message" => 'You can not access this folder'
+                        ], 400);
+                    }
+                }
+            }
+        }
+        catch (\Exception $exception) {
+            return response()->json([
+                "message" => $exception->getMessage()
+            ], 500);
+        }
+        return response()->json([
+            "message" => 'Can not access this folder'
+        ], 500);
+    }
+    public function modulesInClassService($class_id) {
+        $user = Auth::user();
+        try {
+            if ($class_id) {
+                $class = ClassModel::find($class_id);
+                $class_user_id = $class->user->id;
+                $modules = DB::table('module')
+                    ->join('class_has_module', 'module.id', '=', 'class_has_module.module_id')
+                    ->where('class_has_module.class_id', '=', $class_id);
+                if ($user->id == $class_user_id) {
+                    $modules = $modules->select('module.*')
+                        ->get();
+                    return response()->json($modules, 200);
+                }
+                else {
+                    $joinedClass = MembersHasClasses::where('member_id', '=', $user->id)
+                        ->where('class_id', '=', $class_id)
+                        ->first();
+                    if ($joinedClass != null) {
+                        if ($class->public != 0) {
+                            $modules = $modules->where('module.public', '<>', 0)
+                                ->select('module.*')
+                                ->get();
+                            return response()->json($modules, 200);
+                        }
+                        else {
+                            return response()->json([
+                                "message" => 'You can not access this folder'
+                            ], 400);
+                        }
+                    }
+                    else {
+                        return response()->json([
+                            "message" => "You not joined this class"
+                        ], 400);
+                    }
+                }
+            }
+        }
+        catch (\Exception $exception) {
+            return response()->json([
+                "message" => $exception->getMessage()
+            ], 500);
+        }
+        return response()->json([
+            "message" => 'Can not access this class'
+        ], 500);
     }
 }

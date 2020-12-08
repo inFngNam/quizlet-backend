@@ -42,10 +42,37 @@ Route::group([
     Route::post('create', 'Api\ClassController@create');
     Route::put('update/{id}', 'Api\ClassController@update');
     Route::delete('delete/{id}', 'Api\ClassController@delete');
-    Route::post('assign-module-to-class/{module_id}/{class_id}', 'Api\ClassController@assignModule');
-    Route::get('modules', 'Api\ClassController@modules');
-    Route::delete('delete-module/module', 'Api\ClassController@deleteModule');
+    Route::get('detail', 'Api\ClassController@index');
+    Route::get('generate-shared-link/{id}/{code}', 'Api\ClassController@generateLink');
+    Route::post('send-shared-link', 'Api\ClassController@sendSharedLink');
+    Route::group([
+        "prefix" => "module"
+    ], function () {
+        Route::post('assign-module-to-class/{module_id}/{class_id}', 'Api\ClassController@assignModule');
+        Route::get('all', 'Api\ClassController@modules');
+        Route::delete('delete-from-class', 'Api\ClassController@deleteModule');
+        Route::post('add-module-in-class/{id}/{code}', 'Api\ClassController@addModuleInClass');
+    });
+    Route::group([
+        'prefix' => 'folder'
+    ], function () {
+        Route::post('assign-folder-to-class/{folder_id}/{class_id}', 'Api\ClassController@assignFolder');
+        Route::get('all', 'Api\ClassController@folders');
+        Route::delete('delete-from-class','Api\ClassController@deleteFolder');
+        Route::post('add-folder-in-class/{id}/{code}', 'Api\ClassController@addFolderToClass');
+    });
+    Route::group([
+        'prefix' => 'join'
+    ], function () {
+        Route::post('join-request/{class_id}', 'Api\ClassController@sendJoinRequest');
+//        Route::get('confirm/{class_id}/{user_id}', 'Api\ClassController@confirmJoinRequest');
+        Route::get('management/member/{class_id}/{code}', 'Api\ClassController@managementMemberInClass');
+        Route::get('joinedClass', 'Api\ClassController@listJoinedClass');
+        Route::delete('remove/member/{class_id}/{member_id}', 'Api\ClassController@removeMember');
+    });
 });
+Route::get('class/join/confirm/{class_id}/{user_id}', 'Api\ClassController@confirmJoinRequest');
+
 
 //Module
 Route::group([
@@ -57,7 +84,7 @@ Route::group([
     Route::post('create', 'Api\ModuleController@create');
     Route::put('update/{id}', 'Api\ModuleController@update');
     Route::delete('delete/{id}', 'Api\ModuleController@delete');
-
+    Route::get('detail', 'Api\ModuleController@index');
     Route::group([
         'prefix' => 'term'
     ], function () {
@@ -67,6 +94,12 @@ Route::group([
         Route::put('update-term-by-module/{module_id}/{term_id}', 'Api\TermController@update');
         Route::delete('delete/{module_id}/{term_id}', 'Api\TermController@delete');
     });
+    Route::group([
+        "prefix" => "test"
+    ], function () {
+        Route::get('/{module_id}/testing', 'Api\TestController@getQuestions');
+        Route::post('finish', 'Api\TestController@checkAnswer');
+    });
 });
 
 //Folder
@@ -75,17 +108,58 @@ Route::group([
     'middleware' => 'auth:api'
 ], function () {
     Route::post('create', 'Api\FolderController@create');
-    Route::get('detail/{id}', 'Api\FolderController@index');
+    Route::get('detail', 'Api\FolderController@index');
     Route::get('listFolder', 'Api\FolderController@listFolders');
     Route::put('update/{folder_id}', 'Api\FolderController@update');
     Route::delete('delete/{id}', 'Api\FolderController@delete');
+    Route::get('folder-detail', 'Api\FolderController@folderDetail');
+    Route::get('generate-shared-link/{id}/{code}', 'Api\FolderController@generateLink');
+    Route::post('send-shared-link', 'Api\FolderController@sendSharedLink');
     Route::group([
         'prefix' => 'module'
     ], function (){
         Route::get('list', 'Api\FolderController@modules');
-        Route::get('assign-to-folder/{module_id}/{folder_id}', 'Api\FolderController@assignModule');
+        Route::post('assign-to-folder/{module_id}/{folder_id}', 'Api\FolderController@assignModule');
         Route::delete('delete-from-folder', 'Api\FolderController@deleteModuleFromFolder');
+        Route::post('add-module-in-folder/{id}/{code}', 'Api\FolderController@addModuleInFolder');
+    });
+});
+//Member
+Route::group([
+    'prefix' => 'member',
+    'middleware' => 'auth:api'
+], function () {
+    Route::get('list-joined-members/{class_id}', 'Api\MembersController@listMembers');
+    Route::get('list-joined-classes', 'Api\MembersController@joinedClass');
+    Route::post('join-class/{class_id}', 'Api\MembersController@join');
+    Route::delete('leave-joined-class/{class_id}', 'Api\MembersController@leaveClass');
+    Route::delete('delete-joined-member', 'Api\MembersController@deleteMemberFromClass');
+});
+//Route::get('test/{email}', 'Api\AuthController@test');
+Route::group([
+    'prefix' => 'join',
+    'middleware' => 'auth:api'
+], function () {
+    Route::group([
+        'prefix' => 'module'
+    ], function () {
+        Route::get('/{id}', 'Api\ViewModule@viewModule');
+    });
+    Route::group([
+        'prefix' => 'folder'
+    ], function () {
+        Route::get('sharing/{username}/{folder_id}/{code}', 'Api\FolderController@sharing');
     });
 });
 
-//Route::get('test/{email}', 'Api\AuthController@test');
+//SEARCH
+
+Route::group([
+    'prefix' => 'search',
+    'middleware' => 'auth:api'
+], function () {
+    Route::get('module', 'Api\SearchController@searchModule');
+    Route::get('folder', 'Api\SearchController@searchFolder');
+    Route::get('class', 'Api\SearchController@searchClass');
+    Route::get('user', 'Api\SearchController@searchUser');
+});
